@@ -164,7 +164,7 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
 
   for (var i = 0; i < spheresCount; i = i + 1)
   {
-    hit_sphere(r, spheresb[i].transform.xyz, spheresb[i].transform.w, &record, closest.t);
+    hit_sphere(spheresb[i].transform.xyz, spheresb[i].transform.w, r, &record, closest.t);
     if (record.hit_anything == true && record.t < closest.t)
     {
       record.object_color = spheresb[i].color;
@@ -218,18 +218,19 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
       break;
     }
 
-    var normal = record.normal;
+    var normal = select(-record.normal, record.normal, record.frontface);
     var frontface = record.frontface;
     var object_material = record.object_material;
     var random_sphere = rng_next_vec3_in_unit_sphere(rng_state);
 
     if (object_material.x == 0.0) // lambertian
     {
-      behaviour = lambertian(normal, object_material.y, random_sphere, rng_state);
+      behaviour = material_behaviour(true, normal + random_sphere);
     }
     else if (object_material.x == 1.0) // metal
     {
-      behaviour = metal(normal, r_.direction, object_material.y, random_sphere);
+      var reflected = reflect(r_.direction, normal);
+      behaviour = material_behaviour(true, reflected + object_material.y * random_sphere);
     }
     else if (object_material.x == 2.0) // dielectric
     {
