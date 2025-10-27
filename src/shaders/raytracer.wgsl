@@ -278,23 +278,22 @@ fn render(@builtin(global_invocation_id) id : vec3u)
 
     var color = vec3(rng_next_float(&rng_state), rng_next_float(&rng_state), rng_next_float(&rng_state));
 
-    // Steps:
-    // 1. Loop for each sample per pixel
-    // 2. Get ray
-    // 3. Call trace function
-    // 4. Average the color
-
+    // Loop for each sample per pixel
     for (var i = 0; i < samples_per_pixel; i = i + 1)
     {
       var r = get_ray(cam, uv, &rng_state);
       color = color + trace(r, &rng_state);
     }
+    color = color / f32(samples_per_pixel);
 
     var color_out = vec4(linear_to_gamma(color), 1.0);
     var map_fb = mapfb(id.xy, rez);
     
-    // 5. Accumulate the color
+    // Accumulate the color
     var should_accumulate = uniforms[3];
+    if (should_accumulate > 0.0 && time > 0) {
+        color_out = mix(rtfb[map_fb], color_out, 1.0 / f32(time + 1));
+    }
 
     // Set the color to the framebuffer
     rtfb[map_fb] = color_out;
