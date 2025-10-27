@@ -162,6 +162,18 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
   var record = hit_record(RAY_TMAX, vec3f(0.0), vec3f(0.0), vec4f(0.0), vec4f(0.0), false, false);
   var closest = record;
 
+  for (var i = 0; i < spheresCount; i = i + 1)
+  {
+    hit_sphere(r, spheresb[i].transform.xyz, spheresb[i].transform.w, &record, closest.t);
+    if (record.hit_anything == true && record.t < closest.t)
+    {
+      record.object_color = spheresb[i].color;
+      record.object_material = spheresb[i].material;
+      record.frontface = dot(r.direction, record.normal) < 0.0;
+      closest = record;
+    }
+  }
+
   return closest;
 }
 
@@ -198,7 +210,45 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
 
   for (var j = 0; j < maxbounces; j = j + 1)
   {
+    var record = check_ray_collision(r_, RAY_TMAX);
 
+    if (record.hit_anything == false)
+    {
+      light = light + color * envoriment_color(r_.direction, backgroundcolor1, backgroundcolor2);
+      break;
+    }
+
+    var normal = record.normal;
+    var frontface = record.frontface;
+    var object_material = record.object_material;
+    var random_sphere = rng_next_vec3_in_unit_sphere(rng_state);
+
+    if (object_material.x == 0.0) // lambertian
+    {
+      behaviour = lambertian(normal, object_material.y, random_sphere, rng_state);
+    }
+    else if (object_material.x == 1.0) // metal
+    {
+      behaviour = metal(normal, r_.direction, object_material.y, random_sphere);
+    }
+    else if (object_material.x == 2.0) // dielectric
+    {
+      behaviour = dielectric(normal, r_.direction, object_material.y, frontface, random_sphere, object_material.z, rng_state);
+    }
+    else if (object_material.x == 3.0) // emmisive
+    {
+      behaviour = emmisive(record.object_color.xyz, object_material.y);
+      light = light + color * record.object_color.xyz * object_material.y;
+      break;
+    }
+
+    if (behaviour.scatter == false)
+    {
+      break;
+    }
+
+    r_ = ray(record.p, normalize(behaviour.direction));
+    color = color * record.object_color.xyz;
   }
 
   return light;
@@ -232,6 +282,12 @@ fn render(@builtin(global_invocation_id) id : vec3u)
     // 2. Get ray
     // 3. Call trace function
     // 4. Average the color
+
+    for (var i = 0; i < samples_per_pixel; i = i + 1)
+    {
+      var r = get_ray(cam, uv, &rng_state);
+      color = color + trace(r, &rng_state);
+    }
 
     var color_out = vec4(linear_to_gamma(color), 1.0);
     var map_fb = mapfb(id.xy, rez);
