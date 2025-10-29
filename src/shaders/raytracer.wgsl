@@ -236,16 +236,33 @@ fn metal(normal : vec3f, direction: vec3f, fuzz: f32, random_sphere: vec3f) -> m
 
 // ---------------------------------------------------------------- //
 
+fn schlick(cosine: f32, ref_idx: f32) -> f32 {
+  let r0 = ((1.0 - ref_idx) / (1.0 + ref_idx));
+  let r0sq = r0 * r0;
+  return r0sq + (1.0 - r0sq) * pow(1.0 - cosine, 5.0);
+}
+
 fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontface: bool, random_sphere: vec3f, fuzz: f32, rng_state: ptr<function, u32>) -> material_behaviour
 {
-  var refracted = refract(r_direction, normal, refraction_index);
-  if (frontface)
-  {
-    return material_behaviour(true, refracted + fuzz * random_sphere);
+  let unit_direction = normalize(r_direction);
+  let eta = select(refraction_index, 1.0 / refraction_index, frontface); // Snell's law
+  let cos_theta = min(dot(-unit_direction, normal), 1.0);
+  let sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));
+
+  // Total internal reflection
+  if (eta * sin_theta > 1.0) {
+    let reflected = reflect(unit_direction, normal);
+    return material_behaviour(true, reflected);
   }
-  else
-  {
-    return material_behaviour(true, refracted - fuzz * random_sphere);
+
+  // Decide reflection vs refraction using Schlick's approximation
+  let reflect_prob = schlick(cos_theta, refraction_index);
+  if (rng_next_float(rng_state) < reflect_prob) {
+    let reflected = reflect(unit_direction, normal);
+    return material_behaviour(true, reflected);
+  } else {
+    let refracted = refract(unit_direction, normal, eta);
+    return material_behaviour(true, refracted);
   }
 }
 
@@ -308,7 +325,7 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
     {
       break;
     }
-
+    
     r_ = ray(record.p, normalize(behaviour.direction));
     r_.origin = r_.origin + normal * RAY_TMIN; // offset to avoid acne
     color = color * record.object_color.xyz;
