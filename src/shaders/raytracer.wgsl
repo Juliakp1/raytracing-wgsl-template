@@ -290,19 +290,19 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
       behaviour = emmisive(record.object_color.xyz, object_material.y);
       break;
     }
-    else if (object_material.x == 0.0) // lambertian
-    {
-      behaviour = lambertian(normal, object_material.y, random_sphere, rng_state);
-    }
-    else if (object_material.x == 1.0) // metal
-    {
-      behaviour = metal(normal, r_.direction, object_material.y, random_sphere);
-    }
-    else if (object_material.x == 2.0) // dielectric
+    else if (object_material.x < 0.0) // dielectric
     {
       behaviour = dielectric(normal, r_.direction, object_material.y, frontface, random_sphere, object_material.z, rng_state);
     }
-    
+    else if (object_material.x >= 0.0) // other materials
+    {
+      var behaviourLambertian = lambertian(normal, object_material.y, random_sphere, rng_state);
+      var behaviourMetal = metal(normal, r_.direction, object_material.y, random_sphere);
+      behaviour = material_behaviour(
+        true,
+        mix(behaviourLambertian.direction, behaviourMetal.direction, object_material.x)
+      );
+    }
 
     if (behaviour.scatter == false)
     {
