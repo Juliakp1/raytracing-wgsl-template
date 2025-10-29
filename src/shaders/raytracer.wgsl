@@ -176,6 +176,18 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     }
   }
 
+  for (var i = 0; i < boxesCount; i = i + 1)
+  {
+    hit_box(r, boxesb[i].center.xyz, boxesb[i].radius.xyz, &record, closest.t);
+    if (record.hit_anything == true && record.t < closest.t)
+    {
+      record.object_color = boxesb[i].color;
+      record.object_material = boxesb[i].material;
+      record.frontface = dot(r.direction, record.normal) < 0.0;
+      closest = record;
+    }
+  }
+
   for (var i = 0; i < meshCount; i = i + 1)
   {
     let min = meshb[i].min.xyz;
@@ -241,7 +253,7 @@ fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontfa
 
 fn emmisive(color: vec3f, light: f32) -> material_behaviour
 {
-  return material_behaviour(false, vec3f(1.0));
+    return material_behaviour(false, vec3f(0.0));
 }
 
 // ---------------------------------------------------------------- //
@@ -272,7 +284,13 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
     var object_material = record.object_material;
     var random_sphere = rng_next_vec3_in_unit_sphere(rng_state);
 
-    if (object_material.x == 0.0) // lambertian
+    if (object_material.w > 2.0) // emmisive
+    {
+      light = light + record.object_color.xyz;
+      behaviour = emmisive(record.object_color.xyz, object_material.y);
+      break;
+    }
+    else if (object_material.x == 0.0) // lambertian
     {
       behaviour = lambertian(normal, object_material.y, random_sphere, rng_state);
     }
@@ -284,12 +302,7 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
     {
       behaviour = dielectric(normal, r_.direction, object_material.y, frontface, random_sphere, object_material.z, rng_state);
     }
-    else if (object_material.x == 3.0) // emmisive
-    {
-      behaviour = emmisive(record.object_color.xyz, object_material.y);
-      light = light + color * record.object_color.xyz * object_material.y;
-      break;
-    }
+    
 
     if (behaviour.scatter == false)
     {
