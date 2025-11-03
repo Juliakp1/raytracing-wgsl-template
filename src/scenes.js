@@ -506,4 +506,38 @@ async function Everything()
     };
 }
 
+async function BigBoyInTheDistance() 
+{
+	let spheres = [
+		new Sphere([0, -1001, 0], [0.5, 0.5, 0.5], 1000, [0.9, 0, 0.6, 0]), 
+		new Sphere([0, 0.3, -5], [0.8, 0.1, 0.2], 1.3, [-1, 0, 0.9, 0]), 
+		new Sphere([1.12, 1.49, -6.98], [0.4, 0.9, 0.8], 0.5, [0, 0, 0, 0]), 
+	];
+
+	let quads = [
+
+		new Quad([-1, -1, 2.33, 0], [-1, 0, -10, 0], [0, 10, 0, 0], [1, 0.5019607843137255, 1, 0], [1, 0, 0.9, 0]), 
+	];
+
+	let boxes = [
+		new Box([-1.37, 0, -5.47, 0], [0.5019607843137255, 0.5019607843137255, 1], [0, 0, 0, 0], [1, 0.5, 0.5, 0], [0, 0, 0, 0]), 
+		new Box([0, 0, -12, 0], [0.25098039215686274, 0, 0.5019607843137255], [0, 0, 0, 0], [3, 3, 0.5, 0], [0, 0, 0, 0]), 
+	];
+
+	return {
+		spheres : spheres,
+		quads : quads,
+		boxes : boxes,
+		triangles: [],
+		meshes: [],
+		backgroundColor1 : [1, 1, 1],
+		backgroundColor2 : [0.5, 0.7, 1],
+		focusDistance: 4,
+		focusAngle: 0.2,
+		sunIntensity: 1,
+		samplesPerPixel: 1,
+		maxBounces: 10
+	};
+}
+
 export { getAvailableScene };

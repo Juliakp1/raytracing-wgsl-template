@@ -235,6 +235,17 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     }
   }
 
+  for (var i = 0; i < quadsCount; i = i + 1)
+  {
+    hit_quad(r, quadsb[i].Q, quadsb[i].u, quadsb[i].v, &record, closest.t);
+    if (record.hit_anything == true && record.t < closest.t)
+    {
+      record.object_color = quadsb[i].color;
+      record.object_material = quadsb[i].material;
+      closest = record;
+    }
+  }
+
   for (var i = 0; i < meshCount; i = i + 1){
 
     let translation = meshb[i].transform.xyz;
@@ -317,10 +328,10 @@ fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontfa
   let reflect_prob = schlick(cos_theta, refraction_index);
   if (rng_next_float(rng_state) < reflect_prob) {
     let reflected = reflect(unit_direction, normal);
-    return material_behaviour(true, reflected);
+    return material_behaviour(true, reflected + fuzz * random_sphere);
   } else {
     let refracted = refract(unit_direction, normal, eta);
-    return material_behaviour(true, refracted);
+    return material_behaviour(true, refracted + fuzz * random_sphere);
   }
 }
 
