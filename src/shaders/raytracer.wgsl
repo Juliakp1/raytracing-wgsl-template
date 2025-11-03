@@ -251,29 +251,28 @@ fn refract_personal(uv: vec3f, n: vec3f, etai_over_etat: f32) -> vec3f {
 
 fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontface: bool, random_sphere: vec3f, fuzz: f32, rng_state: ptr<function, u32>) -> material_behaviour
 {
-  let n = select(-normal, normal, frontface);
   let unit_direction = normalize(r_direction);
-  let eta = select(1.0 / refraction_index, refraction_index, frontface);
-  let cos_theta = min(dot(-unit_direction, n), 1.0);
-  let sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));
+  let eta = select(refraction_index, 1.0 / refraction_index, frontface);
+  let cos_theta = min(dot(-unit_direction, normal), 1.0);
+  let sin_theta = sqrt(1.0 - cos_theta * cos_theta);
 
   // Always refract -- testing
-  let direction = refract_personal(unit_direction, n, eta);
+  let direction = refract(unit_direction, normal, eta);
   return material_behaviour(true, normalize(direction));
 
   // Total internal reflection
   if (eta * sin_theta > 1.0) {
-    let reflected = reflect(unit_direction, n);
+    let reflected = reflect(unit_direction, normal);
     return material_behaviour(true, reflected);
   }
     
   // Decide reflection vs refraction using Schlick's approximation
   let reflect_prob = schlick(cos_theta, refraction_index);
   if (rng_next_float(rng_state) < reflect_prob) {
-    let reflected = reflect(unit_direction, n);
+    let reflected = reflect(unit_direction, normal);
     return material_behaviour(true, reflected);
   } else {
-    let refracted = refract_personal(unit_direction, n, eta);
+    let refracted = refract_personal(unit_direction, normal, eta);
     return material_behaviour(true, refracted);
   }
 }
@@ -308,20 +307,20 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
       break;
     }
 
-    var normal = select(-record.normal, record.normal, record.frontface);
+    var normal = record.normal;
     var frontface = record.frontface;
     var object_material = record.object_material;
     var random_sphere = rng_next_vec3_in_unit_sphere(rng_state);
-
-    if (object_material.w > 2.0) // emmisive
+    
+    if (object_material.w > 0.0) // emmisive
     {
-      light = light + record.object_color.xyz;
+      light = light + record.object_color.xyz * color;
       behaviour = emmisive(record.object_color.xyz, object_material.y);
       break;
     }
     else if (object_material.x < 0.0) // dielectric
     {
-      behaviour = dielectric(normal, r_.direction, object_material.y, frontface, random_sphere, object_material.z, rng_state);
+      behaviour = dielectric(normal, r_.direction, object_material.z, frontface, random_sphere, object_material.y, rng_state);
     }
     else if (object_material.x >= 0.0) // other materials
     {
@@ -329,23 +328,16 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
       var behaviourMetal = metal(normal, r_.direction, object_material.y, random_sphere);
       behaviour = material_behaviour(
         true,
-        mix(behaviourLambertian.direction, behaviourMetal.direction, object_material.x)
+        mix(behaviourLambertian.direction, behaviourMetal.direction, object_material.x) // TODO: FIX MIXING
       );
-    }
-
-    if (behaviour.scatter == false)
-    {
-      break;
     }
     
     r_ = ray(record.p, normalize(behaviour.direction));
-    r_.origin = r_.origin + r_.direction * RAY_TMIN;
-    if (object_material.x >= 0.0) { // not dielectric
-      color = color * record.object_color.xyz;
-    }
+    r_.origin = r_.origin + r_.direction * RAY_TMIN; // prevent acne
+    color = color * record.object_color.xyz;
   }
-
-  return light;
+  
+  return saturate(light);
 }
 
 // ---------------------------------------------------------------- //
