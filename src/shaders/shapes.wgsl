@@ -139,3 +139,28 @@ fn hit_box(r: ray, center: vec3f, rad: vec3f, record: ptr<function, hit_record>,
 
   return;
 }
+
+fn hit_pyramid(r: ray, base_center: vec3f, height: f32, base_size: f32, record: ptr<function, hit_record>, max: f32)
+{
+  var half_size = base_size / 2.0;
+  var apex = base_center + vec3f(0.0, height, 0.0);
+
+  // Base quad
+  var Q = vec4f(base_center - vec3f(half_size, 0.0, half_size), 1.0);
+  var u = vec4f(vec3f(base_size, 0.0, 0.0), 0.0);
+  var v = vec4f(vec3f(0.0, 0.0, base_size), 0.0);
+  hit_quad(r, Q, u, v, record, max);
+  if (record.hit_anything){return;}
+
+  // Side triangles
+  hit_triangle(r, apex, base_center + vec3f(-half_size, 0.0, -half_size), base_center + vec3f(half_size, 0.0, -half_size), record, max);
+  if (record.hit_anything){return;}
+
+  hit_triangle(r, apex, base_center + vec3f(half_size, 0.0, -half_size), base_center + vec3f(half_size, 0.0, half_size), record, max);
+  if (record.hit_anything){return;}
+
+  hit_triangle(r, apex, base_center + vec3f(half_size, 0.0, half_size), base_center + vec3f(-half_size, 0.0, half_size), record, max);
+  if (record.hit_anything){return;}
+
+  hit_triangle(r, apex, base_center + vec3f(-half_size, 0.0, half_size), base_center + vec3f(-half_size, 0.0, -half_size), record, max);
+}

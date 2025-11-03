@@ -75,6 +75,14 @@ struct mesh {
   end : f32,
 };
 
+struct pyramid {
+  base_center : vec4f,
+  height : f32,
+  base_size : f32,
+  color : vec4f,
+  material : vec4f,
+};
+
 struct material_behaviour {
   scatter : bool,
   direction : vec3f,
@@ -210,6 +218,8 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
       }
     }
   }
+
+
 
   return closest;
 }
