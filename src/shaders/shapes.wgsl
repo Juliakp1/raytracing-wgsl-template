@@ -26,8 +26,10 @@ fn hit_sphere(center: vec3f, radius: f32, r: ray, record: ptr<function, hit_reco
 
   record.t = root;
   record.p = ray_at(r, root);
-  record.normal = normalize(record.p - center); // Ensure normal is normalized
-  record.hit_anything = true;  
+  var newNormal = (record.p - center) / radius;
+  record.frontface = dot(r.direction, newNormal) < 0.0;
+  record.normal = select(-normalize(newNormal), normalize(newNormal), record.frontface);
+  record.hit_anything = true;
 }
 
 fn hit_quad(r: ray, Q: vec4f, u: vec4f, v: vec4f, record: ptr<function, hit_record>, max: f32)

@@ -179,7 +179,6 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     {
       record.object_color = spheresb[i].color;
       record.object_material = spheresb[i].material;
-      record.frontface = dot(r.direction, record.normal) < 0.0;
       closest = record;
     }
   }
@@ -252,23 +251,12 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
   return r0sq + (1.0 - r0sq) * pow(1.0 - cosine, 5.0);
 }
 
-fn refract_personal(uv: vec3f, n: vec3f, etai_over_etat: f32) -> vec3f {
-  let cos_theta = min(dot(-uv, n), 1.0);
-  let r_out_perp = etai_over_etat * (uv + cos_theta * n);
-  let r_out_parallel = -sqrt(max(0.0, 1.0 - dot(r_out_perp, r_out_perp))) * n;
-  return r_out_perp + r_out_parallel;
-}
-
 fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontface: bool, random_sphere: vec3f, fuzz: f32, rng_state: ptr<function, u32>) -> material_behaviour
 {
   let unit_direction = normalize(r_direction);
   let eta = select(refraction_index, 1.0 / refraction_index, frontface);
   let cos_theta = min(dot(-unit_direction, normal), 1.0);
   let sin_theta = sqrt(1.0 - cos_theta * cos_theta);
-
-  // Always refract -- testing
-  let direction = refract(unit_direction, normal, eta);
-  return material_behaviour(true, normalize(direction));
 
   // Total internal reflection
   if (eta * sin_theta > 1.0) {
@@ -282,7 +270,7 @@ fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontfa
     let reflected = reflect(unit_direction, normal);
     return material_behaviour(true, reflected);
   } else {
-    let refracted = refract_personal(unit_direction, normal, eta);
+    let refracted = refract(unit_direction, normal, eta);
     return material_behaviour(true, refracted);
   }
 }
