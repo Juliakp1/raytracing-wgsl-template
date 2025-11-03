@@ -242,26 +242,38 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
   return r0sq + (1.0 - r0sq) * pow(1.0 - cosine, 5.0);
 }
 
+fn refract_personal(uv: vec3f, n: vec3f, etai_over_etat: f32) -> vec3f {
+  let cos_theta = min(dot(-uv, n), 1.0);
+  let r_out_perp = etai_over_etat * (uv + cos_theta * n);
+  let r_out_parallel = -sqrt(max(0.0, 1.0 - dot(r_out_perp, r_out_perp))) * n;
+  return r_out_perp + r_out_parallel;
+}
+
 fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontface: bool, random_sphere: vec3f, fuzz: f32, rng_state: ptr<function, u32>) -> material_behaviour
 {
+  let n = select(-normal, normal, frontface);
   let unit_direction = normalize(r_direction);
-  let eta = select(refraction_index, 1.0 / refraction_index, frontface); // Snell's law
-  let cos_theta = min(dot(-unit_direction, normal), 1.0);
+  let eta = select(1.0 / refraction_index, refraction_index, frontface);
+  let cos_theta = min(dot(-unit_direction, n), 1.0);
   let sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));
+
+  // Always refract -- testing
+  let direction = refract_personal(unit_direction, n, eta);
+  return material_behaviour(true, normalize(direction));
 
   // Total internal reflection
   if (eta * sin_theta > 1.0) {
-    let reflected = reflect(unit_direction, normal);
+    let reflected = reflect(unit_direction, n);
     return material_behaviour(true, reflected);
   }
-
+    
   // Decide reflection vs refraction using Schlick's approximation
   let reflect_prob = schlick(cos_theta, refraction_index);
   if (rng_next_float(rng_state) < reflect_prob) {
-    let reflected = reflect(unit_direction, normal);
+    let reflected = reflect(unit_direction, n);
     return material_behaviour(true, reflected);
   } else {
-    let refracted = refract(unit_direction, normal, eta);
+    let refracted = refract_personal(unit_direction, n, eta);
     return material_behaviour(true, refracted);
   }
 }
@@ -327,8 +339,10 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
     }
     
     r_ = ray(record.p, normalize(behaviour.direction));
-    r_.origin = r_.origin + normal * RAY_TMIN; // offset to avoid acne
-    color = color * record.object_color.xyz;
+    r_.origin = r_.origin + r_.direction * RAY_TMIN;
+    if (object_material.x >= 0.0) { // not dielectric
+      color = color * record.object_color.xyz;
+    }
   }
 
   return light;
