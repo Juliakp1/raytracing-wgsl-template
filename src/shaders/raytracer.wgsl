@@ -29,6 +29,9 @@ const FRAC_2_PI = 1.5707964f;
 @group(2) @binding(4)
   var<storage, read_write> meshb : array<mesh>;
 
+@group(2) @binding(5)
+  var<storage, read_write> pyramidsb : array<pyramid>;
+
 struct ray {
   origin : vec3f,
   direction : vec3f,
@@ -202,6 +205,7 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
   var boxesCount = i32(uniforms[21]);
   var trianglesCount = i32(uniforms[22]);
   var meshCount = i32(uniforms[27]);
+  var pyramidsCount = i32(uniforms[28]);
 
   var record = hit_record(RAY_TMAX, vec3f(0.0), vec3f(0.0), vec4f(0.0), vec4f(0.0), false, false);
   var closest = record;
@@ -280,6 +284,17 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     }
   }
 
+  // for (var i = 0; i < pyramidsCount; i = i + 1)
+  // {
+  //   hit_pyramid(pyramidsb[i], r, &record, closest.t);
+  //   if (record.hit_anything == true && record.t < closest.t)
+  //   {
+  //     record.object_color = pyramidsb[i].color;
+  //     record.object_material = pyramidsb[i].material;
+  //     closest = record;
+  //   }
+  // }
+
   return closest;
 }
 
@@ -321,7 +336,7 @@ fn dielectric(normal : vec3f, r_direction: vec3f, refraction_index: f32, frontfa
   // Total internal reflection
   if (eta * sin_theta > 1.0) {
     let reflected = reflect(unit_direction, normal);
-    return material_behaviour(true, reflected);
+    return material_behaviour(true, reflected + fuzz * random_sphere);
   }
     
   // Decide reflection vs refraction using Schlick's approximation

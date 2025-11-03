@@ -99,4 +99,23 @@ class Mesh
     }
 }
 
-export { Sphere, Quad, Box, Triangle, Mesh };
+class Pyramid
+{
+    name = "Pyramid";
+    baseCenter = [0.0, 0.0, 0.0, 0.0];
+    height = 0.0;
+    baseSize = 0.0;
+    color = [0.0, 0.0, 0.0, 0.0];
+    material = [0.0, 0.0, 0.0, 0.0];
+
+    constructor(baseCenter, height, baseSize, color, material)
+    {
+        this.baseCenter = [baseCenter[0], baseCenter[1], baseCenter[2], 0.0];
+        this.height = height;
+        this.baseSize = baseSize; 
+        this.color = [color[0], color[1], color[2], 1.0];
+        this.material = material;
+    }
+}
+
+export { Sphere, Quad, Box, Triangle, Mesh, Pyramid };

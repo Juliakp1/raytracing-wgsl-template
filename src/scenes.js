@@ -1,4 +1,4 @@
-import { Sphere, Quad, Box, Mesh } from './objects.js';
+import { Sphere, Quad, Box, Mesh, Pyramid } from './objects.js';
 import { loadMesh, getObjBoundingBox, getSpheresRandom } from './util.js';
 
 const groundDefault = new Sphere([0, -1001, 0], [0.7, 0.7, 0.7], 1000, [0.9, 0.0, 0.6, 0.0]);
@@ -26,6 +26,7 @@ async function Spheres(numSpheres = 4)
         boxes: [], 
         triangles: [], 
         meshes: [], 
+		pyramids: [],
         backgroundColor1: [0.0, 0.5, 1.0], 
         backgroundColor2: [1.0, 1.0, 1.0], 
         focusDistance: 5.0, 
@@ -46,6 +47,7 @@ async function Night()
         boxes,
         triangles,
         meshes,
+		pyramids: [],
         backgroundColor1: [0.0, 0.0, 0.0],
         backgroundColor2: [0.0, 0.0, 0.0],
         focusDistance: 5.0,
@@ -69,6 +71,7 @@ async function Basic()
         boxes: [], 
         triangles: [], 
         meshes: [], 
+		pyramids: [],
         backgroundColor1: [0.0, 0.5, 1.0], 
         backgroundColor2: [1.0, 1.0, 1.0],
         focusDistance: 5.0, 
@@ -101,6 +104,7 @@ async function Metal()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
 		backgroundColor1 : [0, 0.5, 1],
 		backgroundColor2 : [1, 1, 1],
 		focusDistance: 5,
@@ -132,6 +136,7 @@ async function Fuzz()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
 		backgroundColor1 : [0, 0.3803921568627451, 0.7607843137254902],
 		backgroundColor2 : [1, 1, 1],
 		focusDistance: 5,
@@ -164,6 +169,7 @@ async function Specular()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
 		backgroundColor1 : [0, 0, 0],
 		backgroundColor2 : [0.34509803921568627, 0.6039215686274509, 0.9921568627450981],
 		focusDistance: 5,
@@ -188,6 +194,7 @@ async function Emissive()
         boxes: [], 
         triangles: [], 
         meshes: [], 
+		pyramids: [],
         backgroundColor1: [0.0, 0.0, 0.0], 
         backgroundColor2: [0.0, 0.0, 0.0],
         focusDistance: 5.0, 
@@ -213,6 +220,7 @@ async function Dielectric()
         boxes: [], 
         triangles: [], 
         meshes: [], 
+		pyramids: [],
         backgroundColor1: [0.0, 0.5, 1.0], 
         backgroundColor2: [1.0, 1.0, 1.0],
         focusDistance: 5.0, 
@@ -244,6 +252,7 @@ async function Cubes()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
 		backgroundColor1 : [0, 0.5, 1],
 		backgroundColor2 : [1, 1, 1],
 		focusDistance: 5,
@@ -288,6 +297,7 @@ async function Cornell()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
 		backgroundColor1 : [0, 0, 0],
 		backgroundColor2 : [0, 0, 0],
 		focusDistance: 5,
@@ -331,6 +341,7 @@ async function Mirror()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
 		backgroundColor1 : [0, 0, 0],
 		backgroundColor2 : [0, 0, 0],
 		focusDistance: 5,
@@ -373,6 +384,7 @@ async function Infinite()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
 		backgroundColor1 : [0, 0, 0],
 		backgroundColor2 : [0, 0, 0],
 		focusDistance: 5,
@@ -401,6 +413,7 @@ async function Bunny()
         boxes: [], 
         triangles, 
         meshes, 
+		pyramids: [],
         backgroundColor1: [0.0, 0.5, 1.0], 
         backgroundColor2: [1.0, 1.0, 1.0], 
         focusDistance: 4.0, 
@@ -424,6 +437,7 @@ async function Suzzanne()
         boxes: [], 
         triangles, 
         meshes, 
+		pyramids: [],
         backgroundColor1: [0.0, 0.5, 1.0], 
         backgroundColor2: [1.0, 1.0, 1.0], 
         focusDistance: 5.0, 
@@ -463,6 +477,7 @@ async function Rotation()
 		boxes : boxes,
 		triangles: triangles,
 		meshes: meshes,
+		pyramids: [],
 		backgroundColor1 : [1, 1, 1],
 		backgroundColor2 : [0.06274509803921569, 0.0784313725490196, 0.19607843137254902],
 		focusDistance: 3,
@@ -496,6 +511,7 @@ async function Everything()
         boxes: boxes, 
         triangles: triangles, 
         meshes: meshes,
+		pyramids: [],
         backgroundColor1: [0.0, 0.5, 1.0], 
         backgroundColor2: [1.0, 1.0, 1.0], 
         focusDistance: 3.0, 
@@ -513,6 +529,8 @@ async function BigBoyInTheDistance()
 		new Sphere([0, 0.3, -5], [0.8, 0.1, 0.2], 1.3, [-1, 0, 0.9, 0]), 
 		new Sphere([1.12, 1.49, -6.98], [0.4, 0.9, 0.8], 0.5, [0, 0, 0, 0]), 
 	];
+    let offset = [1, -1, -5];
+	spheres = spheres.concat(getSpheresRandom(2, offset));
 
 	let quads = [
 
@@ -530,6 +548,36 @@ async function BigBoyInTheDistance()
 		boxes : boxes,
 		triangles: [],
 		meshes: [],
+		pyramids: [],
+		backgroundColor1 : [1, 1, 1],
+		backgroundColor2 : [0.5, 0.7, 1],
+		focusDistance: 4,
+		focusAngle: 0.2,
+		sunIntensity: 1,
+		samplesPerPixel: 1,
+		maxBounces: 10
+	};
+}
+
+async function PyramidFar() 
+{
+	let spheres = [
+		new Sphere([0, -1001, 0], [0.5, 0.5, 0.5], 1000, [0.9, 0, 0.6, 0]), 
+	];
+    let offset = [1, -1, -5];
+	spheres = spheres.concat(getSpheresRandom(3, offset));
+
+	let pyramids = [
+		new Pyramid([-1, 0, -5.5, 0], 4, 6, [0.7, 0.7, 0.7], [1.0, 0.0, 1.0, 0.0]),
+	];
+
+	return {
+		spheres : spheres,
+		quads : [],
+		boxes : [],
+		triangles: [],
+		meshes: [],
+		pyramids : pyramids,
 		backgroundColor1 : [1, 1, 1],
 		backgroundColor2 : [0.5, 0.7, 1],
 		focusDistance: 4,
