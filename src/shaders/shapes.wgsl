@@ -142,6 +142,21 @@ fn hit_box(r: ray, center: vec3f, rad: vec3f, record: ptr<function, hit_record>,
   return;
 }
 
+fn hit_box_rotated(r: ray, center: vec3f, rad: vec3f, rotation: mat3x3<f32>, record: ptr<function, hit_record>, t_max: f32)
+{
+  var inv_rotation = transpose(rotation);
+  var rotated_origin = inv_rotation * (r.origin - center);
+  var rotated_direction = inv_rotation * r.direction;
+  var rotated_ray = ray(rotated_origin, rotated_direction);
+
+  hit_box(rotated_ray, vec3f(0.0), rad, record, t_max);
+
+  if (record.hit_anything == true)
+  {
+    record.normal = rotation * record.normal;
+  }
+}
+
 fn hit_pyramid(pyramid: pyramid, r: ray, record: ptr<function, hit_record>, max: f32)
 {
   var half_size = pyramid.base_size / 2.0;

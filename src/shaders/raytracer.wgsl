@@ -229,7 +229,7 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     let transformed_center = transform_point(vec3f(0.0), translation, rotation, vec3f(1.0));
     let transformed_radius = boxesb[i].radius.xyz * scale;    
 
-    hit_box(r, transformed_center, transformed_radius, &record, closest.t);
+    hit_box_rotated(r, transformed_center, transformed_radius, rotation_matrix(rotation), &record, closest.t);
     if (record.hit_anything == true && record.t < closest.t)
     {
       record.object_color = boxesb[i].color;
