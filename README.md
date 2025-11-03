@@ -45,4 +45,3 @@ You can compute your grade based on the scenes you managed to render. You can al
 
 ### Entrega:
 Via Blackboard, entregue o link do git.
-#### Dia 18/11/2024
