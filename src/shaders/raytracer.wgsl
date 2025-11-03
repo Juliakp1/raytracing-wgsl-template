@@ -219,7 +219,6 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
 
   for (var i = 0; i < boxesCount; i = i + 1)
   {
-
     let translation = boxesb[i].center.xyz;
     let rotation = boxesb[i].rotation.xyz;
     let scale = boxesb[i].radius.xyz;
@@ -236,8 +235,7 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     }
   }
 
-  for (var i = 0; i < meshCount; i = i + 1)
-  {
+  for (var i = 0; i < meshCount; i = i + 1){
 
     let translation = meshb[i].transform.xyz;
     let rotation = meshb[i].rotation.xyz;
@@ -375,10 +373,13 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
     {
       var behaviourLambertian = lambertian(normal, object_material.y, random_sphere, rng_state);
       var behaviourMetal = metal(normal, r_.direction, object_material.y, random_sphere);
-      behaviour = material_behaviour(
-        true,
-        mix(behaviourLambertian.direction, behaviourMetal.direction, object_material.x) // TODO: FIX MIXING
-      );
+
+      var t = object_material.z; // blending factor
+      if (rng_next_float(rng_state) < t) {
+          behaviour = behaviourMetal;
+      } else {
+          behaviour = behaviourLambertian;
+      }
     }
     
     r_ = ray(record.p, normalize(behaviour.direction));
