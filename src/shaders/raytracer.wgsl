@@ -161,6 +161,40 @@ fn envoriment_color(direction: vec3f, color1: vec3f, color2: vec3f) -> vec3f
 
 // ---------------------------------------------------------------- //
 
+fn rotation_matrix(rot: vec3f) -> mat3x3<f32> {
+    let cx = cos(rot.x);
+    let sx = sin(rot.x);
+    let cy = cos(rot.y);
+    let sy = sin(rot.y);
+    let cz = cos(rot.z);
+    let sz = sin(rot.z);
+
+    let Rx = mat3x3<f32>(
+        vec3f(1.0, 0.0, 0.0),
+        vec3f(0.0, cx, -sx),
+        vec3f(0.0, sx, cx)
+    );
+    let Ry = mat3x3<f32>(
+        vec3f(cy, 0.0, sy),
+        vec3f(0.0, 1.0, 0.0),
+        vec3f(-sy, 0.0, cy)
+    );
+    let Rz = mat3x3<f32>(
+        vec3f(cz, -sz, 0.0),
+        vec3f(sz, cz, 0.0),
+        vec3f(0.0, 0.0, 1.0)
+    );
+
+    return Rz * Ry * Rx;
+}
+
+fn transform_point(pos: vec3f, translation: vec3f, rotation: vec3f, scale: vec3f) -> vec3f {
+    let R = rotation_matrix(rotation);
+    return (R * (pos * scale)) + translation;
+}
+
+// ---------------------------------------------------------------- //
+
 fn check_ray_collision(r: ray, max: f32) -> hit_record
 {
   var spheresCount = i32(uniforms[19]);
@@ -185,7 +219,14 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
 
   for (var i = 0; i < boxesCount; i = i + 1)
   {
-    hit_box(r, boxesb[i].center.xyz, boxesb[i].radius.xyz, &record, closest.t);
+
+    let translation = boxesb[i].center.xyz;
+    let rotation = boxesb[i].rotation.xyz;
+    let scale = boxesb[i].radius.xyz;
+    let transformed_center = transform_point(vec3f(0.0), translation, rotation, vec3f(1.0));
+    let transformed_radius = boxesb[i].radius.xyz * scale;    
+
+    hit_box(r, transformed_center, transformed_radius, &record, closest.t);
     if (record.hit_anything == true && record.t < closest.t)
     {
       record.object_color = boxesb[i].color;
@@ -197,15 +238,27 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
 
   for (var i = 0; i < meshCount; i = i + 1)
   {
+
+    let translation = meshb[i].transform.xyz;
+    let rotation = meshb[i].rotation.xyz;
+    let scale = meshb[i].scale.xyz;
     let min = meshb[i].min.xyz;
     let max = meshb[i].max.xyz;
-    // bounding box
-    hit_box(r, (min + max) / 2.0, (max - min) / 2.0, &record, closest.t);
+
+    let transformed_min = transform_point(min, translation, rotation, scale);
+    let transformed_max = transform_point(max, translation, rotation, scale);
+    hit_box(r, (transformed_min + transformed_max) / 2.0, (transformed_max - transformed_min) / 2.0, &record, closest.t); // bounding box
+
     if (record.hit_anything == true) {
       for (var j = i32(meshb[i].start); j < i32(meshb[i].end); j = j + 1) {
-        let v0 = trianglesb[j].v0.xyz;
-        let v1 = trianglesb[j].v1.xyz;
-        let v2 = trianglesb[j].v2.xyz;
+        var v0 = trianglesb[j].v0.xyz;
+        var v1 = trianglesb[j].v1.xyz;
+        var v2 = trianglesb[j].v2.xyz;
+
+        v0 = transform_point(v0, meshb[i].transform.xyz, meshb[i].rotation.xyz, meshb[i].scale.xyz);
+        v1 = transform_point(v1, meshb[i].transform.xyz, meshb[i].rotation.xyz, meshb[i].scale.xyz);
+        v2 = transform_point(v2, meshb[i].transform.xyz, meshb[i].rotation.xyz, meshb[i].scale.xyz);
+
         hit_triangle(r, v0, v1, v2, &record, closest.t);
         if (record.hit_anything == true && record.t < closest.t)
         {
@@ -217,8 +270,6 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
       }
     }
   }
-
-
 
   return closest;
 }
