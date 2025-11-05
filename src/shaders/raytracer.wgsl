@@ -210,6 +210,8 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
   var record = hit_record(RAY_TMAX, vec3f(0.0), vec3f(0.0), vec4f(0.0), vec4f(0.0), false, false);
   var closest = record;
 
+  // ------------------------------- //
+
   for (var i = 0; i < spheresCount; i = i + 1)
   {
     hit_sphere(spheresb[i].transform.xyz, spheresb[i].transform.w, r, &record, closest.t);
@@ -221,15 +223,15 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     }
   }
 
+  // ------------------------------- //
+
   for (var i = 0; i < boxesCount; i = i + 1)
   {
     let translation = boxesb[i].center.xyz;
     let rotation = boxesb[i].rotation.xyz;
-    let scale = boxesb[i].radius.xyz;
-    let transformed_center = transform_point(vec3f(0.0), translation, rotation, vec3f(1.0));
-    let transformed_radius = boxesb[i].radius.xyz * scale;    
+    let transformed_center = transform_point(vec3f(0.0), translation, rotation, vec3f(1.0));   
 
-    hit_box_rotated(r, transformed_center, transformed_radius, rotation_matrix(rotation), &record, closest.t);
+    hit_box_rotated(r, transformed_center, boxesb[i].radius.xyz, rotation_matrix(rotation), &record, closest.t);
     if (record.hit_anything == true && record.t < closest.t)
     {
       record.object_color = boxesb[i].color;
@@ -238,6 +240,8 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
       closest = record;
     }
   }
+
+  // ------------------------------- //
 
   for (var i = 0; i < quadsCount; i = i + 1)
   {
@@ -250,6 +254,8 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
     }
   }
 
+  // ------------------------------- //
+
   for (var i = 0; i < meshCount; i = i + 1){
 
     let translation = meshb[i].transform.xyz;
@@ -260,9 +266,9 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
 
     let transformed_min = transform_point(min, translation, rotation, scale);
     let transformed_max = transform_point(max, translation, rotation, scale);
-    hit_box(r, (transformed_min + transformed_max) / 2.0, (transformed_max - transformed_min) / 2.0, &record, closest.t); // bounding box
+    var hitBB = AABB_intersect(r, transformed_min, transformed_max);
 
-    if (record.hit_anything == true) {
+    if (hitBB) {
       for (var j = i32(meshb[i].start); j < i32(meshb[i].end); j = j + 1) {
         var v0 = trianglesb[j].v0.xyz;
         var v1 = trianglesb[j].v1.xyz;
@@ -283,6 +289,8 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
       }
     }
   }
+
+  // ------------------------------- //
 
   // for (var i = 0; i < pyramidsCount; i = i + 1)
   // {
@@ -400,9 +408,11 @@ fn trace(r: ray, rng_state: ptr<function, u32>) -> vec3f
       var behaviourLambertian = lambertian(normal, object_material.y, random_sphere, rng_state);
       var behaviourMetal = metal(normal, r_.direction, object_material.y, random_sphere);
 
+      var newBehaviour = material_behaviour(true, mix(behaviourLambertian.direction, behaviourMetal.direction, object_material.x));
+
       var t = object_material.z; // blending factor
       if (rng_next_float(rng_state) < t) {
-          behaviour = behaviourMetal;
+          behaviour = newBehaviour;
       } else {
           behaviour = behaviourLambertian;
       }
