@@ -85,20 +85,26 @@ fn hit_triangle(r: ray, v0: vec3f, v1: vec3f, v2: vec3f, record: ptr<function, h
   var n = cross(v1v0, v2v0);
   var q = cross(rov0, r.direction);
 
-  var d = 1.0 / dot(r.direction, n);
+  var denom = dot(r.direction, n);
+
+  // --- One-sided check: only detect hits from the front side ---
+  if (denom >= 0.0) {
+    record.hit_anything = false;
+    return;
+  }
+
+  var d = 1.0 / denom;
 
   var u = d * dot(-q, v2v0);
   var v = d * dot(q, v1v0);
   var t = d * dot(-n, rov0);
 
-  if (u < 0.0 || u > 1.0 || v < 0.0 || (u + v) > 1.0)
-  {
+  if (u < 0.0 || u > 1.0 || v < 0.0 || (u + v) > 1.0) {
     record.hit_anything = false;
     return;
   }
 
-  if (t < RAY_TMIN || t > max)
-  {
+  if (t < RAY_TMIN || t > max) {
     record.hit_anything = false;
     return;
   }
@@ -166,24 +172,51 @@ fn hit_pyramid(pyramid: pyramid, r: ray, record: ptr<function, hit_record>, max:
   var base_Q = vec4f(pyramid.base_center.x - half_size, pyramid.base_center.y, pyramid.base_center.z - half_size, 1.0);
   var base_u = vec4f(pyramid.base_size, 0.0, 0.0, 0.0);
   var base_v = vec4f(0.0, 0.0, pyramid.base_size, 0.0);
-  hit_quad(r, base_Q, base_u, base_v, record, max);
-  if (record.hit_anything == true){return;}
 
-  // Side triangles
+  // Vertices of base
   var v0 = pyramid.base_center.xyz + vec3f(-half_size, 0.0, -half_size);
   var v1 = pyramid.base_center.xyz + vec3f( half_size, 0.0, -half_size);
   var v2 = pyramid.base_center.xyz + vec3f( half_size, 0.0,  half_size);
   var v3 = pyramid.base_center.xyz + vec3f(-half_size, 0.0,  half_size);
 
-  hit_triangle(r, v0, v1, apex, record, max);
-  if (record.hit_anything == true){return;}
+  var closest_t = max;
+  var temp_rec: hit_record;
 
-  hit_triangle(r, v1, v2, apex, record, max);
-  if (record.hit_anything == true){return;}
+  // Base
+  hit_triangle(r, v0, v1, v2, &temp_rec, closest_t);
+  if (temp_rec.hit_anything && temp_rec.t < closest_t) {
+    closest_t = temp_rec.t;
+    *record = temp_rec;
+  }
 
-  hit_triangle(r, v2, v3, apex, record, max);
-  if (record.hit_anything == true){return;}
+  hit_triangle(r, v0, v2, v3, &temp_rec, closest_t);
+  if (temp_rec.hit_anything && temp_rec.t < closest_t) {
+    closest_t = temp_rec.t;
+    *record = temp_rec;
+  }
 
-  hit_triangle(r, v3, v0, apex, record, max);
-  if (record.hit_anything == true){return;}
+  // Sides (ordered so normals point outward)
+  hit_triangle(r, v1, v0, apex, &temp_rec, closest_t); // front
+  if (temp_rec.hit_anything && temp_rec.t < closest_t) {
+    closest_t = temp_rec.t;
+    *record = temp_rec;
+  }
+
+  hit_triangle(r, v2, v1, apex, &temp_rec, closest_t); // right
+  if (temp_rec.hit_anything && temp_rec.t < closest_t) {
+    closest_t = temp_rec.t;
+    *record = temp_rec;
+  }
+
+  hit_triangle(r, v3, v2, apex, &temp_rec, closest_t); // back
+  if (temp_rec.hit_anything && temp_rec.t < closest_t) {
+    closest_t = temp_rec.t;
+    *record = temp_rec;
+  }
+
+  hit_triangle(r, v0, v3, apex, &temp_rec, closest_t); // left
+  if (temp_rec.hit_anything && temp_rec.t < closest_t) {
+    closest_t = temp_rec.t;
+    *record = temp_rec;
+  }
 }

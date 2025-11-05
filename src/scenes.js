@@ -568,7 +568,7 @@ async function PyramidFar()
 	spheres = spheres.concat(getSpheresRandom(3, offset));
 
 	let pyramids = [
-		new Pyramid([-2, -1, -8, 0], 7, 6, [1, 0.8, 0.8], [1.0, 0.0, 1.0, 0.0]),
+		new Pyramid([-2, 1, -8, 0], 7, 6, [1, 0.8, 0.8], [0.0, 0.0, 1.0, 0.0]),
 	];
 
 	return {
