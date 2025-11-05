@@ -167,7 +167,6 @@ fn hit_pyramid(pyramid: pyramid, r: ray, record: ptr<function, hit_record>, max:
   var base_u = vec4f(pyramid.base_size, 0.0, 0.0, 0.0);
   var base_v = vec4f(0.0, 0.0, pyramid.base_size, 0.0);
   hit_quad(r, base_Q, base_u, base_v, record, max);
-
   if (record.hit_anything == true){return;}
 
   // Side triangles

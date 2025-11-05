@@ -1,5 +1,5 @@
 import { getGPU, getCanvas, getComputeBuffer, getComputeBufferLayout, getModule, getRenderPipeline, RGBToInt, timer, RGBToHex, crateAllScenesList } from "./src/util.js";
-import { Sphere, Quad, Box, Triangle, Mesh } from "./src/objects.js";
+import { Sphere, Quad, Box, Triangle, Mesh, Pyramid } from "./src/objects.js";
 import { getAvailableScene } from "./src/scenes.js";
 
 // arrays
@@ -8,6 +8,7 @@ let quads = [];
 let boxes = [];
 let triangles = [];
 let meshes = [];
+let pyramids = [];
 
 // variables and constants
 const THREAD_COUNT = 16;
@@ -16,12 +17,14 @@ const MAX_QUADS = 10;
 const MAX_BOXES = 20;
 const MAX_TRIANGLES = 1000;
 const MAX_MESHES = 3;
+const MAX_PYRAMIDS = 3;
 
 let sphereTemplate = new Sphere([0.0, 0.1, -1.5], [0.4, 0.9, 0.8], 0.5, [0.0, 0.0, 0.0, 0.0]);
 let quadTemplate = new Quad([-1.0, -1.0, 0.0, 0.0], [0.0, 0.0, -2.0, 0.0], [0.0, 2.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]);
 let boxTemplate = new Box([0.0, 0.0, -2.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.5, 0.5, 0.5], [0.0, 0.0, 0.0, 0.0]);
 let triangleTemplate = new Triangle([0.0, 0.0, -2.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]);
 let meshTemplate = new Mesh([0.0, 0.0, -2.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], 0, 0, 0);
+let pyramidTemplate = new Pyramid([0.0, 0.0, -2.0], 1.0, 1.0, [1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]);
 
 let perfCount = 0;
 let cameraVelocity = [0.0, 0.0, 0.0];
@@ -58,6 +61,7 @@ const uniforms = {
     lookatz: -4, // 25
     debugShowLookAt: 0, // 26
     meshCount: meshes.length, // 27
+    pyramidsCount: pyramids.length, // 28
 }
 
 const uniformsCount = Object.keys(uniforms).length;
@@ -92,6 +96,9 @@ const trianglesBuffer = await getComputeBuffer(gpu, trianglesBufferSize, GPUBuff
 const meshesBufferSize = (sizes.vec4 * 7 + 3 * sizes.f32) * MAX_MESHES;
 const meshesBuffer = await getComputeBuffer(gpu, meshesBufferSize, GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE);
 
+const pyramidsBufferSize = (sizes.vec4 * 7) * MAX_PYRAMIDS;
+const pyramidsBuffer = await getComputeBuffer(gpu, pyramidsBufferSize, GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE);
+
 const frameBuffers = [{ buffer: frameBuffer, type: "storage" }, { buffer: rayTraceFrameBuffer, type: "storage" }];
 const { bindGroupLayout: frameBuffersLayout, bindGroup: frameBuffersBindGroup } = await getComputeBufferLayout(gpu, frameBuffers);
 
@@ -103,7 +110,8 @@ const objectBuffers = [
     { buffer: quadsBuffer, type: "storage" }, 
     { buffer: boxesBuffer, type: "storage" }, 
     { buffer: trianglesBuffer, type: "storage" }, 
-    { buffer: meshesBuffer, type: "storage" }
+    { buffer: meshesBuffer, type: "storage" }, 
+    { buffer: pyramidsBuffer, type: "storage" }
 ];
 
 // bind group layout
@@ -141,6 +149,7 @@ scenesFolder.add({ NewScene: () => {
     boxes = [];
     meshes = [];
     triangles = [];
+    pyramids = [];
     
     generateBackgroundColor([1.0, 1.0, 1.0], [0.5, 0.7, 1.0]);
     writeBuffers();
@@ -309,6 +318,7 @@ function refreshObjectsGUI(startIndex = 0, rebuild = false)
     refreshObjectGUI(quadTemplate, quads, objectsFolder, null, startIndex);
     refreshObjectGUI(boxTemplate, boxes, objectsFolder, null, startIndex);
     refreshObjectGUI(meshTemplate, meshes, objectsFolder, null, startIndex, false);
+    refreshObjectGUI(pyramidTemplate, pyramids, objectsFolder, null, startIndex);
 }
 
 function printCurrentScene()
@@ -333,6 +343,13 @@ function printCurrentScene()
     for (let i = 0; i < boxes.length; i++)
     {
         funcString += `\n\t\tnew Box([${boxes[i].center[0]}, ${boxes[i].center[1]}, ${boxes[i].center[2]}, ${boxes[i].center[3]}], [${boxes[i].color[0]}, ${boxes[i].color[1]}, ${boxes[i].color[2]}], [${boxes[i].rotation[0]}, ${boxes[i].rotation[1]}, ${boxes[i].rotation[2]}, ${boxes[i].rotation[3]}], [${boxes[i].radius[0]}, ${boxes[i].radius[1]}, ${boxes[i].radius[2]}, ${boxes[i].radius[3]}], [${boxes[i].material[0]}, ${boxes[i].material[1]}, ${boxes[i].material[2]}, ${boxes[i].material[3]}]), `;
+    }
+
+    funcString += "\n\t];\n\n\tlet pyramids = [";
+
+    for (let i = 0; i < pyramids.length; i++)
+    {
+        funcString += `\n\t\tnew Pyramid([${pyramids[i].center[0]}, ${pyramids[i].center[1]}, ${pyramids[i].center[2]}], ${pyramids[i].baseSize}, ${pyramids[i].height}, [${pyramids[i].color[0]}, ${pyramids[i].color[1]}, ${pyramids[i].color[2]}, ${pyramids[i].color[3]}], [${pyramids[i].material[0]}, ${pyramids[i].material[1]}, ${pyramids[i].material[2]}, ${pyramids[i].material[3]}]), `;
     }
 
     funcString += "\n\t];\n";
@@ -412,8 +429,8 @@ async function getScene(index)
 {
     let bg1, bg2, focusDistance, focusAngle, sunIntensity, samplesPerPixel, maxBounces;
     ({spheres : spheres, quads : quads, boxes : boxes, 
-        triangles: triangles, meshes: meshes, backgroundColor1 : bg1, 
-        backgroundColor2 : bg2, focusDistance: focusDistance, focusAngle: 
+        triangles: triangles, meshes: meshes, pyramids: pyramids,
+        backgroundColor1 : bg1, backgroundColor2 : bg2, focusDistance: focusDistance, focusAngle: 
         focusAngle, sunIntensity: sunIntensity, samplesPerPixel: samplesPerPixel, maxBounces: maxBounces} = await getAvailableScene(index, availableScenes));
     
     uniforms.focusDistance = focusDistance;
@@ -447,6 +464,7 @@ function writeUniforms()
     uniforms.boxCount = boxes.length;
     uniforms.trianglesCount = triangles.length;
     uniforms.meshCount = meshes.length;
+    uniforms.pyramidsCount = pyramids.length;
     
     var uniformData = new Float32Array(uniformsBufferSize / sizes.f32);
     var offset = 0;
@@ -513,6 +531,9 @@ function writeBuffers()
 
     // triangles
     writeBuffer(trianglesBuffer, trianglesBufferSize, triangles);
+
+    // pyramids
+    writeBuffer(pyramidsBuffer, pyramidsBufferSize, pyramids);
 }
 
 // render framebuffer to quad

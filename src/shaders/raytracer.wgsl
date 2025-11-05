@@ -292,16 +292,16 @@ fn check_ray_collision(r: ray, max: f32) -> hit_record
 
   // ------------------------------- //
 
-  // for (var i = 0; i < pyramidsCount; i = i + 1)
-  // {
-  //   hit_pyramid(pyramidsb[i], r, &record, closest.t);
-  //   if (record.hit_anything == true && record.t < closest.t)
-  //   {
-  //     record.object_color = pyramidsb[i].color;
-  //     record.object_material = pyramidsb[i].material;
-  //     closest = record;
-  //   }
-  // }
+  for (var i = 0; i < pyramidsCount; i = i + 1)
+  {
+    hit_pyramid(pyramidsb[i], r, &record, closest.t);
+    if (record.hit_anything == true && record.t < closest.t)
+    {
+      record.object_color = pyramidsb[i].color;
+      record.object_material = pyramidsb[i].material;
+      closest = record;
+    }
+  }
 
   return closest;
 }
